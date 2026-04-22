@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>인사 표현 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green: oklch(0.68 0.2 145);
+  --green-light: oklch(0.94 0.07 145);
+  --green-dark: oklch(0.52 0.2 145);
+  --yellow: oklch(0.88 0.16 88);
+  --yellow-dark: oklch(0.7 0.16 78);
+  --blue: oklch(0.62 0.17 240);
+  --blue-light: oklch(0.93 0.06 240);
+  --red: oklch(0.58 0.22 22);
+  --red-light: oklch(0.95 0.06 22);
+  --purple: oklch(0.62 0.2 290);
+  --purple-light: oklch(0.94 0.06 290);
+  --bg: oklch(0.97 0.015 88);
+  --text: oklch(0.2 0.02 240);
+  --card: #fff;
+  --shadow: 0 6px 28px oklch(0.4 0.06 240 / 0.13);
+}
+body {
+  font-family: 'Nanum Gothic', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 14px 48px;
+  overflow-x: hidden;
+}
+
+/* ══ HEADER ══ */
+.header {
+  width: 100%; max-width: 700px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.header-title { font-size: 21px; font-weight: 800; color: var(--green); display: flex; align-items: center; gap: 8px; }
+.score-badge {
+  background: var(--yellow); border-radius: 50px; padding: 8px 18px;
+  font-size: 18px; font-weight: 800; color: var(--text);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.score-badge.pop { animation: scorePop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes scorePop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+
+/* ══ STAGE INDICATOR ══ */
+.stage-indicator {
+  width: 100%; max-width: 700px;
+  display: flex; gap: 8px; margin-bottom: 14px;
+}
+.stage-pill {
+  flex: 1; height: 8px; border-radius: 99px;
+  background: oklch(0.88 0.04 240);
+  transition: background 0.4s;
+}
+.stage-pill.active { background: var(--green); }
+.stage-pill.done { background: var(--yellow-dark); }
+
+/* ══ PROGRESS ══ */
+.progress-wrap { width: 100%; max-width: 700px; margin-bottom: 18px; }
+.progress-label { font-size: 13px; font-weight: 700; color: oklch(0.5 0.05 240); margin-bottom: 5px; }
+.progress-bar { width: 100%; height: 10px; background: oklch(0.9 0.03 240); border-radius: 99px; overflow: hidden; }
+.progress-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--green), oklch(0.76 0.18 170));
+  transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ══ QUESTION CARD ══ */
+.question-card {
+  width: 100%; max-width: 700px;
+  background: var(--card); border-radius: 26px; box-shadow: var(--shadow);
+  padding: 26px 26px 22px; margin-bottom: 18px;
+  position: relative; overflow: hidden;
+}
+.question-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, var(--green), var(--yellow-dark));
+}
+.q-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 800; padding: 5px 14px; border-radius: 99px; margin-bottom: 14px;
+}
+.scene-box {
+  border-radius: 18px; padding: 20px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.scene-emoji { font-size: 68px; line-height: 1; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+.scene-desc { font-size: 22px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.45; word-break: keep-all; white-space: pre-line; }
+.scene-sub { font-size: 15px; color: oklch(0.48 0.06 240); text-align: center; word-break: keep-all; }
+.q-ask { font-size: 17px; font-weight: 700; color: var(--text); text-align: center; word-break: keep-all; }
+
+/* ══ ANSWERS ══ */
+.answers { width: 100%; max-width: 700px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.ans-btn {
+  background: var(--card); border: 3px solid oklch(0.87 0.04 240); border-radius: 18px;
+  padding: 18px 12px; font-family: 'Nanum Gothic', sans-serif; font-size: 20px; font-weight: 800;
+  color: var(--text); cursor: pointer; transition: all 0.17s;
+  box-shadow: 0 4px 0 oklch(0.83 0.04 240);
+  min-height: 78px; display: flex; align-items: center; justify-content: center; text-align: center; word-break: keep-all;
+}
+.ans-btn:hover:not(:disabled) { transform: translateY(-4px); border-color: var(--blue); background: var(--blue-light); box-shadow: 0 7px 0 var(--blue); }
+.ans-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 oklch(0.83 0.04 240); }
+.ans-btn.correct { border-color: var(--green); background: var(--green-light); box-shadow: 0 4px 0 var(--green); animation: correctPop 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+.ans-btn.wrong { border-color: var(--red); background: var(--red-light); box-shadow: 0 4px 0 var(--red); animation: shake 0.42s; }
+.ans-btn.reveal { border-color: var(--green); background: var(--green-light); box-shadow: 0 4px 0 var(--green); }
+@keyframes correctPop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.09)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-9px)} 40%,80%{transform:translateX(9px)} }
+
+/* ══ NEXT BUTTON ══ */
+.next-btn {
+  width: 100%; max-width: 700px; border: none; border-radius: 18px;
+  padding: 19px; font-family: 'Nanum Gothic', sans-serif; font-size: 22px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; display: none;
+}
+.next-btn.visible { display: block; animation: fadeUp 0.35s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.next-btn:hover { transform: translateY(-2px); }
+.next-btn:active { transform: translateY(2px); }
+.next-btn.green { background: var(--green); color: #fff; box-shadow: 0 5px 0 var(--green-dark); }
+.next-btn.green:hover { box-shadow: 0 8px 0 var(--green-dark); }
+.next-btn.purple { background: var(--purple); color: #fff; box-shadow: 0 5px 0 oklch(0.46 0.2 290); }
+
+/* ══ FEEDBACK CARD (inline, below answers) ══ */
+.feedback-card {
+  width: 100%; max-width: 700px;
+  border-radius: 20px; padding: 18px 20px;
+  display: none; flex-direction: row; align-items: center; gap: 16px;
+  margin-bottom: 14px; animation: fadeUp 0.35s ease;
+}
+.feedback-card.visible { display: flex; }
+.feedback-card.correct-card { background: var(--green-light); border: 2.5px solid var(--green); }
+.feedback-card.wrong-card { background: var(--red-light); border: 2.5px solid var(--red); }
+.fb-icon { font-size: 42px; flex-shrink: 0; }
+.fb-body { display: flex; flex-direction: column; gap: 4px; }
+.fb-title { font-size: 20px; font-weight: 800; }
+.fb-title.correct-card { color: var(--green); }
+.fb-title.wrong-card { color: var(--red); }
+.fb-msg { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.5; word-break: keep-all; }
+.fb-answer { font-size: 14px; font-weight: 700; color: oklch(0.42 0.04 240); word-break: keep-all; }
+
+/* ══ FLOATING EMOJI BURST ══ */
+.burst-emoji {
+  position: fixed; font-size: 40px; pointer-events: none; z-index: 300;
+  animation: burstFloat 1s ease forwards;
+}
+@keyframes burstFloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-90px) scale(1.4)} }
+
+/* ══ SCREENS (intro / mid / final) ══ */
+.screen {
+  display: none; width: 100%; max-width: 700px;
+  flex-direction: column; align-items: center; gap: 22px; padding: 10px 0;
+}
+.screen.show { display: flex; }
+
+.big-emoji { font-size: 88px; animation: float 3s ease-in-out infinite; }
+.screen-title { font-size: 34px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.3; word-break: keep-all; }
+.screen-title span { color: var(--green); }
+.screen-sub { font-size: 17px; color: oklch(0.45 0.06 240); text-align: center; line-height: 1.65; word-break: keep-all; }
+
+.rules-box { background: var(--blue-light); border-radius: 20px; padding: 20px 22px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.rule-item { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; color: var(--text); word-break: keep-all; }
+.rule-num { width: 32px; height: 32px; background: var(--blue); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+
+.big-btn {
+  border: none; border-radius: 20px; padding: 22px 56px;
+  font-family: 'Nanum Gothic', sans-serif; font-size: 26px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px;
+}
+.big-btn.green { background: var(--green); color: #fff; box-shadow: 0 7px 0 var(--green-dark); }
+.big-btn.green:hover { transform: translateY(-3px); box-shadow: 0 10px 0 var(--green-dark); }
+.big-btn.green:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--green-dark); }
+.big-btn.yellow { background: var(--yellow); color: var(--text); box-shadow: 0 7px 0 var(--yellow-dark); }
+.big-btn.yellow:hover { transform: translateY(-3px); box-shadow: 0 10px 0 var(--yellow-dark); }
+
+/* mid screen specifics */
+.mid-stats {
+  background: var(--card); border-radius: 20px; padding: 22px 24px; width: 100%;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px;
+}
+.stat-row { display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 700; color: var(--text); }
+.stat-val { font-size: 22px; font-weight: 800; color: var(--green); }
+
+/* final result */
+.final-score-ring {
+  width: 160px; height: 160px; border-radius: 50%;
+  background: conic-gradient(var(--green) var(--pct), oklch(0.9 0.03 240) var(--pct));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 12px var(--green-light);
+  position: relative;
+}
+.final-score-inner {
+  width: 120px; height: 120px; border-radius: 50%;
+  background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.final-score-num { font-size: 30px; font-weight: 800; color: var(--text); }
+.final-score-label { font-size: 13px; font-weight: 700; color: oklch(0.5 0.05 240); }
+.stars-row { font-size: 38px; letter-spacing: 4px; }
+.praise-box {
+  background: var(--green-light); border-radius: 18px; padding: 18px 22px; width: 100%;
+  font-size: 18px; font-weight: 700; color: oklch(0.36 0.18 145); line-height: 1.6; text-align: center; word-break: keep-all;
+}
+.trophy-row { display: flex; gap: 10px; font-size: 36px; }
+
+/* confetti */
+.confetti-piece {
+  position: fixed; border-radius: 2px; top: -20px;
+  animation: fall linear forwards; pointer-events: none; z-index: 500;
+}
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+/* game area wrapper */
+#gameArea { display: none; width: 100%; max-width: 700px; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">🙋 인사 표현 게임</div>
+  <div class="score-badge" id="scoreDisplay">⭐ 0점</div>
+</div>
+
+<!-- ══ INTRO SCREEN ══ -->
+<div class="screen show" id="introScreen">
+  <div class="big-emoji">🧑‍🤝‍🧑</div>
+  <div class="screen-title">상대와 상황에 맞는<br><span>인사말</span>을 골라봐요!</div>
+  <div class="screen-sub">친구에게? 선생님에게? 어른에게?<br>알맞은 인사 표현을 찾아보아요.</div>
+  <div class="rules-box">
+    <div class="rule-item"><div class="rule-num">1</div>상황을 잘 읽고 알맞은 인사말을 눌러요.</div>
+    <div class="rule-item"><div class="rule-num">2</div>맞히면 ⭐점수가 올라가요!</div>
+    <div class="rule-item"><div class="rule-num">3</div>1단계 8문제 → 2단계 8문제로 진행해요.</div>
+    <div class="rule-item"><div class="rule-num">4</div>모두 끝나면 특별한 결과가 기다려요!</div>
+  </div>
+  <button class="big-btn green" onclick="startGame()">🎮 게임 시작!</button>
+</div>
+
+<!-- ══ GAME AREA ══ -->
+<div id="gameArea">
+  <div class="stage-indicator">
+    <div class="stage-pill" id="pill1"></div>
+    <div class="stage-pill" id="pill2"></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-label" id="progressLabel">1단계 1 / 8 문제</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div class="question-card" id="questionCard">
+    <div class="q-tag" id="qTag">👤 상대에 따른 인사</div>
+    <div class="scene-box" id="sceneBox">
+      <div class="scene-emoji" id="sceneEmoji">👫</div>
+      <div class="scene-desc" id="sceneDesc"></div>
+      <div class="scene-sub" id="sceneSub"></div>
+    </div>
+    <div class="q-ask">👆 알맞은 인사말을 골라보세요!</div>
+  </div>
+  <div class="answers" id="answersGrid"></div>
+  <div class="feedback-card" id="feedbackCard">
+    <div class="fb-icon" id="fbIcon"></div>
+    <div class="fb-body">
+      <div class="fb-title" id="fbTitle"></div>
+      <div class="fb-msg" id="fbMsg"></div>
+      <div class="fb-answer" id="fbAnswer"></div>
+    </div>
+  </div>
+  <button class="next-btn green" id="nextBtn" onclick="nextQuestion()">다음 문제 →</button>
+</div>
+
+<!-- ══ MID SCREEN ══ -->
+<div class="screen" id="midScreen">
+  <div class="big-emoji">🎯</div>
+  <div class="screen-title">1단계 완료!</div>
+  <div class="mid-stats" id="midStats">
+    <div class="stat-row"><span>1단계 정답 수</span><span class="stat-val" id="midCorrect">0개</span></div>
+    <div class="stat-row"><span>1단계 점수</span><span class="stat-val" id="midScore">0점</span></div>
+    <div class="stat-row"><span>남은 단계</span><span class="stat-val">2단계 (8문제)</span></div>
+  </div>
+  <div class="screen-sub" id="midMsg">잘 하고 있어요! 2단계도 도전해봐요!</div>
+  <button class="big-btn green" onclick="startStage2()">🚀 2단계 도전!</button>
+</div>
+
+<!-- ══ FINAL SCREEN ══ -->
+<div class="screen" id="finalScreen">
+  <div class="trophy-row" id="trophyRow">🏆🎉🌟</div>
+  <div class="screen-title" id="finalTitle">완벽해요!</div>
+  <div class="final-score-ring" id="scoreRing" style="--pct:0%">
+    <div class="final-score-inner">
+      <div class="final-score-num" id="finalNum">0/16</div>
+      <div class="final-score-label">정답</div>
+    </div>
+  </div>
+  <div class="stars-row" id="finalStars">⭐⭐⭐⭐⭐</div>
+  <div class="praise-box" id="praiseBox"></div>
+  <button class="big-btn yellow" onclick="retryGame()">🔄 다시 하기</button>
+</div>
+
+<script>
+const questions = [
+  // ── 1단계 ──
+  {
+    stage: 1, type: "상대에 따른 인사",
+    emoji: "🏫👫", desc: "학교에서 친구를 만났어요", sub: "친구 사이에서는 어떻게 인사할까요?",
+    correct: "안녕!", options: ["안녕!", "안녕하세요!", "반갑습니다.", "처음 뵙겠습니다."],
+    explanation: "친구에게는 '안녕!'이라고 편하게 인사해요!"
+  },
+  {
+    stage: 1, type: "상대에 따른 인사",
+    emoji: "🏫👩‍🏫", desc: "복도에서 선생님을 만났어요", sub: "어른인 선생님께는 어떻게 인사할까요?",
+    correct: "안녕하세요!", options: ["안녕!", "안녕하세요!", "잘 가!", "나중에 봐!"],
+    explanation: "선생님께는 높임말 '안녕하세요!'를 써요."
+  },
+  {
+    stage: 1, type: "상대에 따른 인사",
+    emoji: "🏘️👴", desc: "동네에서 할아버지를 만났어요", sub: "나이 드신 어른께는 어떻게 인사할까요?",
+    correct: "안녕하세요!", options: ["안녕?", "안녕하세요!", "잘 지냈어?", "야, 오랜만이야!"],
+    explanation: "어른께는 허리를 숙이며 '안녕하세요!'라고 해요."
+  },
+  {
+    stage: 1, type: "상황에 따른 인사",
+    emoji: "🌅🎒", desc: "아침에 학교에 도착했어요!\n선생님께 먼저 인사해요", sub: "아침 등교 인사는?",
+    correct: "안녕하세요!", options: ["안녕히 계세요.", "안녕하세요!", "수고하세요.", "잘 가요!"],
+    explanation: "아침에 만나는 선생님께는 '안녕하세요!'라고 해요."
+  },
+  {
+    stage: 1, type: "상황에 따른 인사",
+    emoji: "🌆🎒", desc: "학교가 끝나고 선생님께\n작별 인사를 해요", sub: "하교할 때 선생님께는?",
+    correct: "안녕히 계세요!", options: ["안녕!", "잘 가!", "안녕히 계세요!", "다음에 봐!"],
+    explanation: "선생님께 작별 인사는 '안녕히 계세요!'예요."
+  },
+  {
+    stage: 1, type: "상황에 따른 인사",
+    emoji: "👫💛", desc: "친구와 하교할 때 헤어져요", sub: "친구에게 작별 인사는?",
+    correct: "잘 가!", options: ["안녕히 계세요.", "잘 가!", "감사합니다.", "반갑습니다."],
+    explanation: "친구와 헤어질 때는 '잘 가!' 또는 '내일 봐!'라고 해요."
+  },
+  {
+    stage: 1, type: "상황에 따른 인사",
+    emoji: "🎁🙏", desc: "선생님께 선물을 받았어요!\n뭐라고 인사할까요?", sub: "감사할 때 어른께 쓰는 인사말은?",
+    correct: "감사합니다!", options: ["고마워!", "감사합니다!", "잘 가요.", "안녕하세요."],
+    explanation: "어른께 감사할 때는 '감사합니다!'라고 해요."
+  },
+  {
+    stage: 1, type: "상대에 따른 인사",
+    emoji: "📅👫", desc: "오랫동안 못 봤던 친구를\n오늘 다시 만났어요!", sub: "오랜만에 만난 친구에게는?",
+    correct: "오랜만이야!", options: ["처음 뵙겠습니다.", "오랜만이야!", "안녕히 계세요.", "수고하세요."],
+    explanation: "오랜만에 만난 친구에게는 '오랜만이야!'라고 해요."
+  },
+  // ── 2단계 ──
+  {
+    stage: 2, type: "상대에 따른 인사",
+    emoji: "🤝👔", desc: "처음 만나는 어른께\n소개를 받았어요!", sub: "처음 만나는 어른께는?",
+    correct: "처음 뵙겠습니다!", options: ["오랜만이야!", "처음 뵙겠습니다!", "잘 가요.", "안녕?"],
+    explanation: "처음 만나는 어른께는 '처음 뵙겠습니다!'라고 해요."
+  },
+  {
+    stage: 2, type: "상황에 따른 인사",
+    emoji: "😔🙏", desc: "친구의 물건을 실수로\n떨어뜨려서 부쉈어요", sub: "친구에게 잘못했을 때는?",
+    correct: "미안해!", options: ["미안해!", "고마워!", "잘 가!", "안녕하세요."],
+    explanation: "친구에게 잘못했을 때는 '미안해!'라고 해요."
+  },
+  {
+    stage: 2, type: "상황에 따른 인사",
+    emoji: "😔🙇", desc: "선생님 말씀을 어기고\n잘못된 행동을 했어요", sub: "어른께 잘못했을 때는?",
+    correct: "죄송합니다!", options: ["미안해!", "죄송합니다!", "고마워요.", "잘 가요."],
+    explanation: "어른께 잘못했을 때는 '죄송합니다!'라고 해요."
+  },
+  {
+    stage: 2, type: "상황에 따른 인사",
+    emoji: "🍱🙏", desc: "점심 급식을 먹기 전이에요!\n밥 먹기 전에 뭐라고 할까요?", sub: "식사 시작 전 인사는?",
+    correct: "잘 먹겠습니다!", options: ["잘 먹겠습니다!", "잘 먹었습니다!", "감사합니다.", "안녕하세요!"],
+    explanation: "밥 먹기 전에는 '잘 먹겠습니다!'라고 해요."
+  },
+  {
+    stage: 2, type: "상황에 따른 인사",
+    emoji: "🍽️😋", desc: "급식을 다 맛있게 먹었어요!\n식사가 끝났을 때는?", sub: "밥 다 먹고 나서 하는 인사는?",
+    correct: "잘 먹었습니다!", options: ["잘 먹겠습니다!", "잘 먹었습니다!", "수고하세요.", "고마워!"],
+    explanation: "밥 먹고 난 후에는 '잘 먹었습니다!'라고 해요."
+  },
+  {
+    stage: 2, type: "상황에 따른 인사",
+    emoji: "🏠👋", desc: "아침에 학교 가기 위해\n집에서 나가요", sub: "집을 나설 때 부모님께는?",
+    correct: "다녀올게요!", options: ["안녕히 계세요!", "다녀올게요!", "잘 가요!", "안녕!"],
+    explanation: "집을 나설 때는 '다녀올게요!'라고 인사해요."
+  },
+  {
+    stage: 2, type: "상황에 따른 인사",
+    emoji: "🏠🎒", desc: "학교 수업이 끝나고\n집에 돌아왔어요!", sub: "집에 돌아왔을 때 가족에게는?",
+    correct: "다녀왔습니다!", options: ["다녀왔습니다!", "잘 있었어요?", "안녕하세요.", "수고하세요."],
+    explanation: "집에 돌아오면 '다녀왔습니다!'라고 인사해요."
+  },
+  {
+    stage: 2, type: "상대에 따른 인사",
+    emoji: "🎂👨‍👩‍👧", desc: "부모님의 생신에\n어른들이 모였어요", sub: "처음 보는 어른께 인사를 해요. 뭐라고 할까요?",
+    correct: "처음 뵙겠습니다!", options: ["안녕!", "처음 뵙겠습니다!", "잘 가!", "반갑습니다!"],
+    explanation: "처음 만나는 어른께는 '처음 뵙겠습니다!'예요."
+  }
+];
+
+// ── 다채로운 피드백 메시지 ──
+const correctMessages = [
+  { icon: "⭕", title: "정답이에요!", msg: "완벽해요! 역시 대단해요!" },
+  { icon: "🌟", title: "맞혔어요!", msg: "훌륭해요! 아주 잘 알고 있네요!" },
+  { icon: "🎯", title: "딩동댕!", msg: "정확히 맞혔어요! 최고예요!" },
+  { icon: "🔥", title: "정답!", msg: "와~ 너무 잘했어요! 멋있어요!" },
+  { icon: "👏", title: "맞아요!", msg: "박수 짝짝짝! 정말 잘 하네요!" },
+  { icon: "💯", title: "완벽해요!", msg: "100점짜리 대답이에요!" },
+  { icon: "🥳", title: "정답이에요!", msg: "오예! 인사 표현을 잘 알고 있어요!" },
+  { icon: "✨", title: "맞혔어요!", msg: "빛나는 실력이에요!" },
+];
+const wrongMessages = [
+  { icon: "💪", title: "아쉬워요!", msg: "괜찮아요, 한 번 더 해봐요!" },
+  { icon: "🌈", title: "惜しい!", msg: "다음엔 꼭 맞힐 수 있어요!" },
+  { icon: "😊", title: "틀렸어요!", msg: "틀려도 괜찮아요! 다시 도전해요." },
+  { icon: "🤔", title: "아쉬워요!", msg: "정답을 잘 기억해 두세요!" },
+  { icon: "🌱", title: "조금만 더!", msg: "연습하면 분명히 잘 할 수 있어요!" },
+  { icon: "💌", title: "파이팅!", msg: "걱정 마요! 지금 배우는 중이에요!" },
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+let stage1Score = 0;
+let stage1Correct = 0;
+const STAGE_SIZE = 8;
+
+function startGame() {
+  document.getElementById('introScreen').classList.remove('show');
+  document.getElementById('gameArea').style.display = 'flex';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = questions[current];
+  const inStage = current < STAGE_SIZE ? current : current - STAGE_SIZE;
+  const stage = current < STAGE_SIZE ? 1 : 2;
+  const totalInStage = STAGE_SIZE;
+
+  // stage pills
+  document.getElementById('pill1').className = 'stage-pill ' + (stage === 1 ? 'active' : 'done');
+  document.getElementById('pill2').className = 'stage-pill ' + (stage === 2 ? 'active' : '');
+
+  // progress
+  document.getElementById('progressLabel').textContent = `${stage}단계 ${inStage + 1} / ${totalInStage} 문제 · ${q.type}`;
+  document.getElementById('progressFill').style.width = `${((inStage) / totalInStage) * 100}%`;
+
+  // tag
+  const tagEl = document.getElementById('qTag');
+  if (q.type === '상대에 따른 인사') {
+    tagEl.textContent = '👤 상대에 따른 인사';
+    tagEl.style.cssText = 'background:oklch(0.94 0.07 145);color:oklch(0.38 0.2 145);';
+  } else {
+    tagEl.textContent = '📍 상황에 따른 인사';
+    tagEl.style.cssText = 'background:oklch(0.93 0.07 55);color:oklch(0.46 0.15 60);';
+  }
+
+  // scene bg
+  const sceneBox = document.getElementById('sceneBox');
+  sceneBox.style.background = stage === 1 ? 'var(--blue-light)' : 'var(--purple-light)';
+
+  document.getElementById('sceneEmoji').textContent = q.emoji;
+  document.getElementById('sceneDesc').textContent = q.desc;
+  document.getElementById('sceneSub').textContent = q.sub;
+
+  // answers
+  const grid = document.getElementById('answersGrid');
+  grid.innerHTML = '';
+  const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+  shuffled.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'ans-btn';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(opt, btn, q);
+    grid.appendChild(btn);
+  });
+
+  // hide feedback & next
+  const fc = document.getElementById('feedbackCard');
+  fc.className = 'feedback-card';
+  document.getElementById('nextBtn').classList.remove('visible');
+  document.getElementById('nextBtn').className = 'next-btn green';
+
+  // card enter animation
+  const card = document.getElementById('questionCard');
+  card.style.opacity = '0'; card.style.transform = 'translateY(18px)';
+  setTimeout(() => { card.style.transition = 'all 0.35s ease'; card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, 40);
+}
+
+function selectAnswer(choice, btn, q) {
+  if (answered) return;
+  answered = true;
+
+  const isCorrect = choice === q.correct;
+  document.querySelectorAll('.ans-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === q.correct) b.classList.add('reveal');
+  });
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    score += 10;
+    if (current < STAGE_SIZE) { stage1Score += 10; stage1Correct++; }
+    const sb = document.getElementById('scoreDisplay');
+    sb.textContent = `⭐ ${score}점`;
+    sb.classList.add('pop');
+    setTimeout(() => sb.classList.remove('pop'), 500);
+    showFeedback(true, q);
+    burstEmojis(btn, isCorrect);
+    launchMiniConfetti();
+  } else {
+    btn.classList.add('wrong');
+    showFeedback(false, q);
+    burstEmojis(btn, false);
+  }
+
+  setTimeout(() => {
+    const nb = document.getElementById('nextBtn');
+    nb.classList.add('visible');
+    if (current === STAGE_SIZE - 1) {
+      nb.textContent = '🎯 1단계 완료! →'; nb.className = 'next-btn purple visible';
+    } else if (current === questions.length - 1) {
+      nb.textContent = '🏆 결과 보기!'; nb.className = 'next-btn green visible';
+    } else {
+      nb.textContent = '다음 문제 →'; nb.className = 'next-btn green visible';
+    }
+  }, 900);
+}
+
+function showFeedback(correct, q) {
+  const pool = correct ? correctMessages : wrongMessages;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const fc = document.getElementById('feedbackCard');
+  document.getElementById('fbIcon').textContent = pick.icon;
+  document.getElementById('fbTitle').textContent = pick.title;
+  document.getElementById('fbTitle').className = 'fb-title ' + (correct ? 'correct-card' : 'wrong-card');
+  document.getElementById('fbMsg').textContent = pick.msg;
+  if (!correct) {
+    document.getElementById('fbAnswer').textContent = `✅ 정답: "${q.correct}" — ${q.explanation}`;
+  } else {
+    document.getElementById('fbAnswer').textContent = `💡 ${q.explanation}`;
+  }
+  fc.className = 'feedback-card visible ' + (correct ? 'correct-card' : 'wrong-card');
+}
+
+function burstEmojis(btn, correct) {
+  const emojis = correct ? ['⭐','✨','🎉','💛','🌟','👍'] : ['💪','🌈','😊','🤗'];
+  const rect = btn.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  for (let i = 0; i < 4; i++) {
+    const el = document.createElement('div');
+    el.className = 'burst-emoji';
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.left = (cx + (Math.random() - 0.5) * 80) + 'px';
+    el.style.top = cy + 'px';
+    el.style.animationDelay = (i * 80) + 'ms';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+}
+
+function nextQuestion() {
+  current++;
+  if (current === STAGE_SIZE) {
+    showMidScreen();
+  } else if (current >= questions.length) {
+    showFinalScreen();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showMidScreen() {
+  document.getElementById('gameArea').style.display = 'none';
+  const mid = document.getElementById('midScreen');
+  mid.classList.add('show');
+  document.getElementById('midCorrect').textContent = `${stage1Correct}개 / 8개`;
+  document.getElementById('midScore').textContent = `${stage1Score}점`;
+  const pct = stage1Correct / STAGE_SIZE;
+  let msg;
+  if (pct === 1) msg = '완벽해요! 1단계 전부 맞혔어요! 💯 2단계도 기대돼요!';
+  else if (pct >= 0.75) msg = '훌륭해요! 거의 다 맞혔어요! 2단계도 잘 할 수 있어요! 💪';
+  else if (pct >= 0.5) msg = '잘 하고 있어요! 2단계에서 더 잘 해봐요! 😊';
+  else msg = '괜찮아요! 2단계에서 다시 도전해봐요! 🌈';
+  document.getElementById('midMsg').textContent = msg;
+  launchMiniConfetti(20);
+}
+
+function startStage2() {
+  document.getElementById('midScreen').classList.remove('show');
+  document.getElementById('gameArea').style.display = 'flex';
+  renderQuestion();
+}
+
+function showFinalScreen() {
+  document.getElementById('gameArea').style.display = 'none';
+  const final = document.getElementById('finalScreen');
+  final.classList.add('show');
+
+  const total = questions.length;
+  const correct = score / 10;
+  const pct = correct / total;
+
+  document.getElementById('finalNum').textContent = `${correct}/${total}`;
+  document.getElementById('scoreRing').style.setProperty('--pct', `${pct * 360}deg`);
+
+  let title, stars, praise, trophies;
+  if (pct === 1) {
+    title = '완벽해요! 최고!!';
+    stars = '⭐⭐⭐⭐⭐';
+    trophies = '🏆🥇🎖️';
+    praise = '16문제 전부 맞혔어요!!\n정말 대단해요! 👏👏👏\n친구에게도 어른에게도 상황에 맞게\n인사를 잘 할 수 있어요!\n오늘 배운 인사 표현, 직접 써봐요! 😊';
+    launchBigConfetti();
+  } else if (pct >= 0.75) {
+    title = '정말 잘 했어요!';
+    stars = '⭐⭐⭐⭐';
+    trophies = '🥈🎉✨';
+    praise = `${total}문제 중 ${correct}개 정답!\n훌륭해요! 인사 표현을 잘 알고 있어요.\n조금만 더 연습하면 완벽해질 거예요! 💪`;
+    launchBigConfetti(60);
+  } else if (pct >= 0.5) {
+    title = '잘 하고 있어요!';
+    stars = '⭐⭐⭐';
+    trophies = '🥉🌟😊';
+    praise = `${total}문제 중 ${correct}개 정답!\n절반 이상 맞혔어요! 👍\n틀린 문제를 다시 확인하고\n한 번 더 도전해봐요!`;
+  } else {
+    title = '다시 도전해봐요!';
+    stars = '⭐⭐';
+    trophies = '💪🌈🤗';
+    praise = `${total}문제 중 ${correct}개 정답!\n괜찮아요! 연습하면 잘 할 수 있어요.\n포기하지 말고 다시 해봐요! 파이팅! 🔥`;
+  }
+
+  document.getElementById('finalTitle').textContent = title;
+  document.getElementById('finalStars').textContent = stars;
+  document.getElementById('trophyRow').textContent = trophies;
+  document.getElementById('praiseBox').textContent = praise;
+}
+
+function retryGame() {
+  current = 0; score = 0; answered = false; stage1Score = 0; stage1Correct = 0;
+  document.getElementById('scoreDisplay').textContent = '⭐ 0점';
+  document.getElementById('finalScreen').classList.remove('show');
+  document.getElementById('introScreen').classList.add('show');
+}
+
+function launchMiniConfetti(count = 22) {
+  const colors = ['#4ade80','#facc15','#60a5fa','#f472b6','#fb923c','#a78bfa','#34d399'];
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.width = (Math.random() * 9 + 5) + 'px';
+      el.style.height = (Math.random() * 9 + 5) + 'px';
+      el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      el.style.animationDuration = (Math.random() * 1.4 + 0.9) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }, i * 35);
+  }
+}
+
+function launchBigConfetti() {
+  // 3 waves
+  launchMiniConfetti(50);
+  setTimeout(() => launchMiniConfetti(50), 600);
+  setTimeout(() => launchMiniConfetti(50), 1200);
+  setTimeout(() => launchMiniConfetti(50), 1800);
+}
+</script>
+</body>
+</html>
